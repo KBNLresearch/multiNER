@@ -1,0 +1,9 @@
+spacy
+requests
+lxml
+polyglot
+flask
+pyicu
+pycld2
+morfessor
+gunicorn
