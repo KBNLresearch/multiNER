@@ -77,6 +77,33 @@ Running test, and stable web-service:
     # echo 1 > /proc/sys/ipv4/tcp_tw_recycle
 
     Else there will be no socket's left to process.
+    
+    
+TODO:
+hack this in somehow..:
+
+from flask import abort, Flask, jsonify, request
+from flair.models import SequenceTagger
+from flair.data import Sentence
+from segtok.segmenter import split_single
+
+app = Flask(__name__)
+
+tagger = SequenceTagger.load('ner-multi')
+
+@app.route('/<text>', methods=['GET'])
+def ner(text="Dit is een verhaal over dhr Willem Jan Faber."):
+    global SequenceTagger
+    sentences = [Sentence(sent, use_tokenizer=True) for sent in split_single(text)]
+    tagger.predict(sentences)
+    return jsonify([s.to_dict(tag_type='ner') for s in sentences])
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=8084)
+
+
+    
+    
 '''
 import ast
 import json
