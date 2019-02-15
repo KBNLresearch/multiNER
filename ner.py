@@ -92,7 +92,7 @@ app = Flask(__name__)
 tagger = SequenceTagger.load('ner-multi')
 
 @app.route('/<text>', methods=['GET'])
-def ner(text="Dit is een verhaal over dhr Willem Jan Faber."):
+def ner(text="Willem Jan Faber stuurt een pakketje terug, want waarom niet."):
     global SequenceTagger
     sentences = [Sentence(sent, use_tokenizer=True) for sent in split_single(text)]
     tagger.predict(sentences)
@@ -101,7 +101,11 @@ def ner(text="Dit is een verhaal over dhr Willem Jan Faber."):
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8084)
 
+TODO:
 
+
+For Multilang support, you might want to run this upfront, and disable as much langauge-guess code in the underlying modules.
+https://github.com/ropensci/cld3
     
     
 '''
