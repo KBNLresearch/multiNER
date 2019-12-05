@@ -458,6 +458,7 @@ class Spotlight(threading.Thread):
 
 def intergrate_results(result, source, source_text, context_len):
     new_result = {}
+    res = []
 
     for ne in result.get("stanford"):
         res = {}
