@@ -1,9 +1,10 @@
-spacy
-requests
-lxml
-polyglot
 flask
-pyicu
-pycld2
-morfessor
 gunicorn
+lxml
+morfessor
+polyglot
+pycld2
+pyicu
+requests
+six
+spacy

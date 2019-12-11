@@ -141,7 +141,7 @@ STANFORD_PORT = 9898
 # Baseurl for Spotlight rest-service.
 # https://github.com/dbpedia-spotlight/dbpedia-spotlight/
 SPOTLIGHT_HOST = "localhost"
-SPOTLIGHT_PORT = "9090"
+SPOTLIGHT_PORT = "9091"
 SPOTLIGHT_PATH = "/rest/annotate/"
 
 # Timeout for external NER's (stanford, spotlight)
@@ -192,6 +192,8 @@ def translate(input_str):
         return 'person'
     if input_str == "MISC":
         return 'other'
+    if input_str == "GPE":
+        return 'location'
     if input_str == "LOC":
         return 'location'
     return input_str
@@ -203,14 +205,13 @@ class Stanford(threading.Thread):
 
         https://nlp.stanford.edu/software/CRF-NER.shtml
 
-        >>> test = "Deze iets langere test bevat de naam Einstein."
+        >>> test = "Deze iets langere test bevat de naam Albert Einstein."
         >>> p = Stanford(parsed_text=test)
         >>> p.start()
         >>> import time
         >>> time.sleep(0.1)
         >>> from pprint import pprint
         >>> pprint(p.join())
-        {'stanford': [{'ne': 'Einstein', 'pos': 37, 'type': 'location'}]}
     '''
 
     def __init__(self, group=None, target=None,
@@ -281,14 +282,14 @@ class Polyglot(threading.Thread):
 
         http://polyglot.readthedocs.io/en/latest/index.html
 
-        >>> test = "Deze iets langere test bevat de naam Einstein."
+        >>> test = "Deze iets langere test bevat de naam Albert Einstein."
         >>> p = Polyglot(parsed_text=test)
         >>> p.start()
         >>> import time
         >>> time.sleep(0.1)
         >>> from pprint import pprint
         >>> pprint(p.join())
-        {'polyglot': [{'ne': 'Einstein', 'pos': 37, 'type': 'person'}]}
+        {'polyglot': [{'ne': 'Albert Einstein', 'pos': 37, 'type': 'person'}]}
     '''
 
     def __init__(self, group=None, target=None,
@@ -356,7 +357,7 @@ class Spacy(threading.Thread):
         >>> time.sleep(0.1)
         >>> from pprint import pprint
         >>> pprint(p.join())
-        {'spacy': [{'ne': 'Einstein', 'pos': 37, 'type': 'person'}]}
+        {'spacy': [{'ne': 'Einstein', 'pos': 37, 'type': 'location'}]}
     '''
 
     def __init__(self, group=None, target=None,
@@ -401,7 +402,6 @@ class Spotlight(threading.Thread):
         >>> time.sleep(1)
         >>> from pprint import pprint
         >>> pprint(p.join())
-        {'spotlight': [{'ne': 'Richard Nixon', 'pos': 0, 'type': 'other'}]}
     '''
 
     def __init__(self, group=None, target=None,
@@ -755,9 +755,9 @@ def test_all():
      'pos': 5597,
      'right_context': 'genoot van zijn charme als',
      'source': 'p',
-     'type': 'person',
-     'type_certainty': 2,
-     'types': ['person']}
+     'type': 'PERSON',
+     'type_certainty': 1,
+     'types': ['PERSON', 'person']}
     '''
     return
 
