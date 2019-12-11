@@ -1,6 +1,3 @@
-![logo](https://raw.githubusercontent.com/KBNLresearch/multiNER/master/multiner_logo.png)
-
-
 MultiNER combines the output from four different named-entity recognition (https://en.wikipedia.org/wiki/Named-entity_recognition) packages into one answer.
 
 This software is part of the dac (https://github.com/KBNLresearch/dac) project,
