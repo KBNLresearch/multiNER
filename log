@@ -1,0 +1,223 @@
+Trying:
+    test = "Deze iets langere test bevat de naam Albert Einstein."
+Expecting nothing
+ok
+Trying:
+    p = Polyglot(parsed_text=test)
+Expecting nothing
+ok
+Trying:
+    p.start()
+Expecting nothing
+ok
+Trying:
+    import time
+Expecting nothing
+ok
+Trying:
+    time.sleep(0.1)
+Expecting nothing
+ok
+Trying:
+    from pprint import pprint
+Expecting nothing
+ok
+Trying:
+    pprint(p.join())
+Expecting:
+    {'polyglot': [{'ne': 'Albert Einstein', 'pos': 37, 'type': 'person'}]}
+ok
+Trying:
+    test = "Deze iets langere test bevat de naam Einstein."
+Expecting nothing
+ok
+Trying:
+    p = Spacy(parsed_text=test)
+Expecting nothing
+ok
+Trying:
+    p.start()
+Expecting nothing
+ok
+Trying:
+    import time
+Expecting nothing
+ok
+Trying:
+    time.sleep(0.1)
+Expecting nothing
+ok
+Trying:
+    from pprint import pprint
+Expecting nothing
+ok
+Trying:
+    pprint(p.join())
+Expecting:
+    {'spacy': [{'ne': 'Einstein', 'pos': 37, 'type': 'location'}]}
+ok
+Trying:
+    t = "Richard Nixon bakt een taart voor zichzelf."
+Expecting nothing
+ok
+Trying:
+    p = Spotlight(parsed_text=t)
+Expecting nothing
+ok
+Trying:
+    p.start()
+Expecting nothing
+ok
+Trying:
+    import time
+Expecting nothing
+ok
+Trying:
+    time.sleep(1)
+Expecting nothing
+ok
+Trying:
+    from pprint import pprint
+Expecting nothing
+ok
+Trying:
+    pprint(p.join())
+Expecting:
+    {'spotlight': [{'ne': 'Richard Nixon', 'pos': 0, 'type': 'other'}]}
+ok
+Trying:
+    test = "Deze iets langere test bevat de naam Albert Einstein."
+Expecting nothing
+ok
+Trying:
+    p = Stanford(parsed_text=test)
+Expecting nothing
+ok
+Trying:
+    p.start()
+Expecting nothing
+ok
+Trying:
+    import time
+Expecting nothing
+ok
+Trying:
+    time.sleep(0.1)
+Expecting nothing
+ok
+Trying:
+    from pprint import pprint
+Expecting nothing
+ok
+Trying:
+    pprint(p.join())
+Expecting:
+    {'stanford': [{'ne': 'Albert Einstein', 'pos': 37, 'type': 'person'}]}
+ok
+Trying:
+    EXAMPLE_URL = "http://resolver.kb.nl/resolve?"
+Expecting nothing
+ok
+Trying:
+    EXAMPLE_URL += "urn=ddd:010381561:mpeg21:a0049:ocr"
+Expecting nothing
+ok
+Trying:
+    ocr_to_dict(EXAMPLE_URL).get("title")
+Expecting:
+    'EERSTE HOOFDSTUK'
+ok
+Trying:
+    parsers = {
+               "polyglot": Polyglot,
+               "stanford": Stanford,
+               "spacy": Spacy,
+               "spotlight": Spotlight,
+              }
+Expecting nothing
+ok
+Trying:
+    url = [EXAMPLE_URL]
+Expecting nothing
+ok
+Trying:
+    parsed_text = ocr_to_dict(url[0])
+Expecting nothing
+ok
+Trying:
+    tasks = []
+Expecting nothing
+ok
+Trying:
+    result = {}
+Expecting nothing
+ok
+Trying:
+    for p in parsers:
+        tasks.append(parsers[p](parsed_text=parsed_text["p"]))
+        tasks[-1].start()
+Expecting nothing
+ok
+Trying:
+    import time
+Expecting nothing
+ok
+Trying:
+    time.sleep(1)
+Expecting nothing
+ok
+Trying:
+    for p in tasks:
+        ner_result = p.join()
+        result[list(ner_result)[0]] = ner_result[list(ner_result)[0]]
+Expecting nothing
+ok
+Trying:
+    from pprint import pprint
+Expecting nothing
+ok
+Trying:
+    pprint(intergrate_results(result, "p", parsed_text["p"], 5)[-1])
+Expecting:
+    {'count': 3,
+     'left_context': 'als wie haar nadert streelt:',
+     'ne': 'René',
+     'ne_context': 'René',
+     'ner_src': ['stanford', 'spacy', 'polyglot'],
+     'pos': 5597,
+     'right_context': 'genoot van zijn charme als',
+     'source': 'p',
+     'type': 'person',
+     'type_certainty': 3,
+     'types': ['person']}
+ok
+19 items had no tests:
+    __main__
+    __main__.Polyglot.__init__
+    __main__.Polyglot.join
+    __main__.Polyglot.run
+    __main__.Spacy.__init__
+    __main__.Spacy.join
+    __main__.Spacy.run
+    __main__.Spotlight.__init__
+    __main__.Spotlight.join
+    __main__.Spotlight.run
+    __main__.Stanford.__init__
+    __main__.Stanford.join
+    __main__.Stanford.run
+    __main__.context
+    __main__.index
+    __main__.intergrate_results
+    __main__.manual_find
+    __main__.max_class
+    __main__.translate
+6 items passed all tests:
+   7 tests in __main__.Polyglot
+   7 tests in __main__.Spacy
+   7 tests in __main__.Spotlight
+   7 tests in __main__.Stanford
+   3 tests in __main__.ocr_to_dict
+  11 tests in __main__.test_all
+42 tests in 25 items.
+42 passed and 0 failed.
+Test passed.

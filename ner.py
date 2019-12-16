@@ -12,7 +12,8 @@ KB/National Library of the Netherlands.
 
 To install most external dependencies using the following command:
 
-    # python3 setup.py
+    pip3 install -r requirements.txt
+    ./install_external_ners.sh
 
 For Stanford and Spotlight, see their own manuals on howto install those:
 
@@ -20,6 +21,8 @@ For Stanford and Spotlight, see their own manuals on howto install those:
 
     https://github.com/dbpedia-spotlight/dbpedia-spotlight/wiki/Run-from-a-JAR
     https://github.com/dbpedia-spotlight/dbpedia-spotlight/
+
+    (Spotlight needs java older version 8 to run..)
 
 Once installed (With wanted language models), run the webservices so MultiNER can contact those:
 
@@ -136,7 +139,7 @@ EXAMPLE_URL += "urn=ddd:010381561:mpeg21:a0049:ocr"
 # https://nlp.stanford.edu/software/crf-faq.shtml#cc
 # (Use inlineXML)
 STANFORD_HOST = "localhost"
-STANFORD_PORT = 9898
+STANFORD_PORT = 9092
 
 # Baseurl for Spotlight rest-service.
 # https://github.com/dbpedia-spotlight/dbpedia-spotlight/
@@ -186,15 +189,17 @@ def translate(input_str):
     '''
         Translate the labels to human-readable.
     '''
-    if input_str == "ORG":
+    input_str = input_str.lower()
+
+    if input_str == "org":
         return 'organisation'
-    if input_str == "PER":
+    if input_str == "per":
         return 'person'
-    if input_str == "MISC":
+    if input_str == "misc":
         return 'other'
-    if input_str == "GPE":
+    if input_str == "gpe":
         return 'location'
-    if input_str == "LOC":
+    if input_str == "loc":
         return 'location'
     return input_str
 
@@ -212,6 +217,7 @@ class Stanford(threading.Thread):
         >>> time.sleep(0.1)
         >>> from pprint import pprint
         >>> pprint(p.join())
+        {'stanford': [{'ne': 'Albert Einstein', 'pos': 37, 'type': 'person'}]}
     '''
 
     def __init__(self, group=None, target=None,
@@ -402,6 +408,7 @@ class Spotlight(threading.Thread):
         >>> time.sleep(1)
         >>> from pprint import pprint
         >>> pprint(p.join())
+        {'spotlight': [{'ne': 'Richard Nixon', 'pos': 0, 'type': 'other'}]}
     '''
 
     def __init__(self, group=None, target=None,
@@ -490,6 +497,8 @@ def intergrate_results(result, source, source_text, context_len):
     parsers = ["spacy", "polyglot"]
 
     for parser in parsers:
+        if result.get(parser) is None:
+            continue
         for ne in result.get(parser):
             if ne.get("pos") in new_result:
 
@@ -717,16 +726,20 @@ def ocr_to_dict(url):
         parsed_text[part] = "".join(parsed_text[part])
 
     return parsed_text
+'''
+'''
 
 
 def test_all():
     '''
     Example usage:
 
-    >>> parsers = {"polyglot": Polyglot,
-    ...            "spacy": Spacy,
+    >>> parsers = {
+    ...            "polyglot": Polyglot,
     ...            "stanford": Stanford,
-    ...            "spotlight": Spotlight}
+    ...            "spacy": Spacy,
+    ...            "spotlight": Spotlight,
+    ...           }
 
     >>> url = [EXAMPLE_URL]
     >>> parsed_text = ocr_to_dict(url[0])
@@ -747,17 +760,17 @@ def test_all():
 
     >>> from pprint import pprint
     >>> pprint(intergrate_results(result, "p", parsed_text["p"], 5)[-1])
-    {'count': 2,
+    {'count': 3,
      'left_context': 'als wie haar nadert streelt:',
      'ne': 'René',
      'ne_context': 'René',
-     'ner_src': ['spacy', 'polyglot'],
+     'ner_src': ['stanford', 'spacy', 'polyglot'],
      'pos': 5597,
      'right_context': 'genoot van zijn charme als',
      'source': 'p',
-     'type': 'PERSON',
-     'type_certainty': 1,
-     'types': ['PERSON', 'person']}
+     'type': 'person',
+     'type_certainty': 3,
+     'types': ['person']}
     '''
     return
 

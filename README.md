@@ -50,4 +50,4 @@ MultiNER has only been tested using python 3, and is open-source with a MIT Lice
 
 Install notes:
 
-See ner.py source.
+See ner.py / Dockerfile for details.
