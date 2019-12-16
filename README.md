@@ -6,16 +6,12 @@ Entity linker for the Dutch historical newspaper collection of the National Libr
 We've noticed a lot of misclassifications in our NER setup, so we've decided to combine the ouput of different NER packages.
 The following packages are used:
 
-    - Stanfor NER (https://nlp.stanford.edu/software/CRF-NER.shtml)
+    - Stanford NER (https://nlp.stanford.edu/software/CRF-NER.shtml)
     - spaCy (https://spacy.io/)
     - polyglot (http://polyglot.readthedocs.io/)
     - DBpedia Spotlight (https://www.dbpedia-spotlight.org/)
 
 In our setup Stanford and Spotlight are the leading NER package's (So all these show up in the integrated results), only if 2 other NER packages agree on a NE, the answer show's up in the integrated results. If just Spotlight or Stanford see an NE, and none agree, it will still show up in the end result.
-
-Demo response from the webservice:
-
-    http://ner.kbresearch.nl/?url=http://resolver.kb.nl/resolve?urn=ddd:010381561:mpeg21:a0049:ocr
 
 Example response:
 
@@ -50,4 +46,9 @@ MultiNER has only been tested using python 3, and is open-source with a MIT Lice
 
 Install notes:
 
-See ner.py / Dockerfile for details.
+See ner.py / Dockerfile and *.sh files for details.
+
+Or run from docker:
+
+docker build -t multiner:latest .
+docker run -i -p 8099:8099 multiner:latest run.sh
