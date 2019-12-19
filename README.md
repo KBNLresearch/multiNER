@@ -53,5 +53,4 @@ Or run from docker:
 
 docker build -t multiner:latest .
 
-
 docker run -i -p 8099:8099 multiner:latest run.sh
