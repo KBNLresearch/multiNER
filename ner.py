@@ -2,7 +2,7 @@
 '''
 MultiNER
 
-MultiNER combines the output from four different
+MultiNER combines the output from five different
 named-entity recognition packages into one answer.
 
 https://github.com/KBNLresearch/MultiNER
@@ -22,7 +22,7 @@ For Stanford and Spotlight, see their own manuals on howto install those:
     https://github.com/dbpedia-spotlight/dbpedia-spotlight/wiki/Run-from-a-JAR
     https://github.com/dbpedia-spotlight/dbpedia-spotlight/
 
-    (Spotlight needs java older version 8 to run..)
+    Spotlight needs older java version 8 to run.
 
 Once installed (With wanted language models), run the webservices so MultiNER can contact those:
 
@@ -39,7 +39,7 @@ Once installed (With wanted language models), run the webservices so MultiNER ca
     modify it to your needs, if you change port's or want to use an external server,
     please keep them in sync with this file (STANFORD_HOST/PORT, SPOTLIGHT_HOST/PORT).
 
-Language models spacy and polyglot:
+Language models spacy, polyglot and flair:
 
     There is a big try catch block surrounding the invocation of polyglot,
     there is a good reason for that, I cannot seem to be able to force it to
@@ -61,6 +61,8 @@ Language models spacy and polyglot:
     $ python -m spacy download nl
     $ python -m spacy download en
 
+    Flair will automaticaly download the language model on firstrun.
+
 
 Running test, and stable web-service:
 
@@ -80,37 +82,7 @@ Running test, and stable web-service:
     # echo 1 > /proc/sys/ipv4/tcp_tw_recycle
 
     Else there will be no socket's left to process.
-    
-    
-TODO:
-hack this in somehow..:
 
-from flask import abort, Flask, jsonify, request
-from flair.models import SequenceTagger
-from flair.data import Sentence
-from segtok.segmenter import split_single
-
-app = Flask(__name__)
-
-tagger = SequenceTagger.load('ner-multi')
-
-@app.route('/<text>', methods=['GET'])
-def ner(text="Willem Jan Faber stuurt een pakketje terug, want waarom niet."):
-    global SequenceTagger
-    sentences = [Sentence(sent, use_tokenizer=True) for sent in split_single(text)]
-    tagger.predict(sentences)
-    return jsonify([s.to_dict(tag_type='ner') for s in sentences])
-
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8084)
-
-TODO:
-
-
-For Multilang support, you might want to run this upfront, and disable as much langauge-guess code in the underlying modules.
-https://github.com/ropensci/cld3
-    
-    
 '''
 import ast
 import json
@@ -125,11 +97,15 @@ from flask import request, Response, Flask
 from lxml import etree
 from polyglot.text import Text
 
+from flair.models import SequenceTagger
+from flair.data import Sentence
+
 application = Flask(__name__)
 application.debug = True
 
 # Preload Dutch data.
 nlp_spacy = spacy.load('nl')
+nlp_flair = SequenceTagger.load('ner-multi')
 
 # Will be used in web-service and doctest.
 EXAMPLE_URL = "http://resolver.kb.nl/resolve?"
@@ -241,7 +217,7 @@ class Stanford(threading.Thread):
                                         port=STANFORD_PORT,
                                         timeout=TIMEOUT)
                 done = True
-            except:
+            except Exception:
                 retry += 1
 
         if not done:
@@ -280,6 +256,52 @@ class Stanford(threading.Thread):
     def join(self):
         threading.Thread.join(self)
         return self.result
+
+
+class Flair(threading.Thread):
+    '''
+        Wrapper for Flair.
+
+        https://github.com/zalandoresearch/flair
+
+        >>> test = "Deze iets langere test bevat de naam Albert Einstein."
+        >>> f = Flair(parsed_text=test)
+        >>> f.start()
+        >>> import time
+        >>> time.sleep(0.1)
+        >>> from pprint import pprint
+        >>> pprint(f.join())
+        {'flair': [{'ne': 'Albert Einstein.', 'pos': 37, 'type': 'person'}]}
+    '''
+    def __init__(self, group=None, target=None,
+                 name=None, parsed_text={}):
+
+        threading.Thread.__init__(self, group=group, target=target, name=name)
+        self.parsed_text = parsed_text
+
+    def run(self):
+        sentence = [Sentence(self.parsed_text, use_tokenizer=False)]
+        tagged = nlp_flair.predict(sentence)
+
+        tagged_items = [
+                s.to_dict(tag_type='ner').get('entities') for s in tagged
+                ]
+
+        self.result = []
+
+        for item in tagged_items:
+            for i in item:
+                if not i:
+                    continue
+                self.result.append({
+                    "ne": i.get('text'),
+                    "pos": i.get('start_pos'),
+                    "type": translate(i.get('type'))
+                })
+
+    def join(self):
+        threading.Thread.join(self)
+        return {"flair": self.result}
 
 
 class Polyglot(threading.Thread):
@@ -453,10 +475,9 @@ class Spotlight(threading.Thread):
 
                 self.result = {"spotlight": result}
                 done = True
-            except:
+            except Exception:
                 self.result = {"spotlight": []}
                 retry += 1
-
 
     def join(self):
         threading.Thread.join(self)
@@ -494,7 +515,7 @@ def intergrate_results(result, source, source_text, context_len):
             else:
                 new_result[ne.get("pos")]["type"][ne.get("type")] += 1
 
-    parsers = ["spacy", "polyglot"]
+    parsers = ["spacy", "polyglot", "flair"]
 
     for parser in parsers:
         if result.get(parser) is None:
@@ -540,11 +561,11 @@ def intergrate_results(result, source, source_text, context_len):
             new_result[ne]["type_certainty"] = ne_type[1]
 
             new_result[ne]["left_context"], \
-            new_result[ne]["right_context"], \
-            new_result[ne]["ne_context"] = context(source_text,
-                                                   new_result[ne]["ne"],
-                                                   ne,
-                                                   context_len)
+                new_result[ne]["right_context"], \
+                new_result[ne]["ne_context"] = context(source_text,
+                                                       new_result[ne]["ne"],
+                                                       ne,
+                                                       context_len)
             new_result[ne]["pos"] = ne
             new_result[ne]["source"] = source
 
@@ -726,8 +747,6 @@ def ocr_to_dict(url):
         parsed_text[part] = "".join(parsed_text[part])
 
     return parsed_text
-'''
-'''
 
 
 def test_all():
@@ -737,6 +756,7 @@ def test_all():
     >>> parsers = {
     ...            "polyglot": Polyglot,
     ...            "stanford": Stanford,
+    ...            "flair" : Flair,
     ...            "spacy": Spacy,
     ...            "spotlight": Spotlight,
     ...           }
@@ -760,16 +780,16 @@ def test_all():
 
     >>> from pprint import pprint
     >>> pprint(intergrate_results(result, "p", parsed_text["p"], 5)[-1])
-    {'count': 3,
+    {'count': 4,
      'left_context': 'als wie haar nadert streelt:',
      'ne': 'René',
      'ne_context': 'René',
-     'ner_src': ['stanford', 'spacy', 'polyglot'],
+     'ner_src': ['stanford', 'spacy', 'polyglot', 'flair'],
      'pos': 5597,
      'right_context': 'genoot van zijn charme als',
      'source': 'p',
      'type': 'person',
-     'type_certainty': 3,
+     'type_certainty': 4,
      'types': ['person']}
     '''
     return

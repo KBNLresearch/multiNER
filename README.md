@@ -10,6 +10,7 @@ The following packages are used:
     - spaCy (https://spacy.io/)
     - polyglot (http://polyglot.readthedocs.io/)
     - DBpedia Spotlight (https://www.dbpedia-spotlight.org/)
+    - Flair (https://github.com/zalandoresearch/flair)
 
 In our setup Stanford and Spotlight are the leading NER package's (So all these show up in the integrated results), only if 2 other NER packages agree on a NE, the answer show's up in the integrated results. If just Spotlight or Stanford see an NE, and none agree, it will still show up in the end result.
 
@@ -51,4 +52,6 @@ See ner.py / Dockerfile and *.sh files for details.
 Or run from docker:
 
 docker build -t multiner:latest .
+
+
 docker run -i -p 8099:8099 multiner:latest run.sh
