@@ -627,6 +627,7 @@ def index():
                "spotlight": Spotlight,
                "stanford": Stanford}
 
+    text = request.args.get('text')
     url = request.args.get('url')
     manual = request.args.get('ne')
     context_len = request.args.get('context')
@@ -636,58 +637,71 @@ def index():
     else:
         context_len = int(context_len)
 
-    if not url:
-        result = {"error": "Missing argument ?url=%s" % EXAMPLE_URL}
+    if not url and not text:
+        result = {"error": "Missing argument ?text= or ?url=%s" % EXAMPLE_URL}
         resp = Response(response=json.dumps(result),
                         mimetype='application/json; charset=utf-8')
         return (resp)
 
-    try:
-        parsed_text = ocr_to_dict(url)
-    except Exception:
-        result = {"error": "Failed to fetch %s" % url}
-        resp = Response(response=json.dumps(result),
+    parsed_text = False
+
+    if url:
+        try:
+            parsed_text = ocr_to_dict(url)
+        except Exception:
+            result = {"error": "Failed to fetch %s" % url}
+            resp = Response(response=json.dumps(result),
+                            mimetype='application/json; charset=utf-8')
+            return (resp)
+
+    if text:
+        parsed_text = {'p': text}
+
+    if parsed_text:
+        result_all = {}
+
+        fresult = []
+        for part in parsed_text:
+            result = {}
+            tasks = []
+
+            if manual:
+                fresult.append(manual_find(manual,
+                                           parsed_text[part],
+                                           part,
+                                           context_len))
+
+            for p in parsers:
+                tasks.append(parsers[p](parsed_text=parsed_text[part]))
+                tasks[-1].start()
+
+            for p in tasks:
+                ner_result = p.join()
+                result[list(ner_result)[0]] = ner_result[list(ner_result)[0]]
+
+            result_all[part] = intergrate_results(result,
+                                                  part,
+                                                  parsed_text[part],
+                                                  context_len)
+
+        for part in result_all:
+            if result_all[part]:
+                for item in result_all[part]:
+                    fresult.append(item)
+
+
+
+        if text:
+            result = json.dumps({"entities": fresult,
+                                 "text": text})
+        else:
+            result = json.dumps({"entities": fresult,
+                                 "text": parsed_text})
+
+        resp = Response(response=result,
                         mimetype='application/json; charset=utf-8')
+
         return (resp)
-
-    result_all = {}
-
-    fresult = []
-    for part in parsed_text:
-        result = {}
-        tasks = []
-
-        if manual:
-            fresult.append(manual_find(manual,
-                                       parsed_text[part],
-                                       part,
-                                       context_len))
-
-        for p in parsers:
-            tasks.append(parsers[p](parsed_text=parsed_text[part]))
-            tasks[-1].start()
-
-        for p in tasks:
-            ner_result = p.join()
-            result[list(ner_result)[0]] = ner_result[list(ner_result)[0]]
-
-        result_all[part] = intergrate_results(result,
-                                              part,
-                                              parsed_text[part],
-                                              context_len)
-
-    for part in result_all:
-        if result_all[part]:
-            for item in result_all[part]:
-                fresult.append(item)
-
-    result = json.dumps({"entities": fresult,
-                         "text": parsed_text})
-
-    resp = Response(response=result,
-                    mimetype='application/json; charset=utf-8')
-
-    return (resp)
 
 
 def ocr_to_dict(url):
