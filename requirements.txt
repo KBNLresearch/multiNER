@@ -9,3 +9,4 @@ pyicu
 requests
 six
 spacy
+tiny-tokenizer
