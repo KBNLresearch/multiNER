@@ -622,7 +622,8 @@ def max_class(input_type={"LOC": 2, "MISC": 3}, pref_type="LOC"):
 
 @application.route('/')
 def index():
-    parsers = {"polyglot": Polyglot,
+    parsers = {"flair": Flair,
+               "polyglot": Polyglot,
                "spacy": Spacy,
                "spotlight": Spotlight,
                "stanford": Stanford}

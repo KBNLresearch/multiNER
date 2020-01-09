@@ -43,6 +43,10 @@ All this information is picked-up by dac to weigh a possible match in WikiData/D
 
 MultiNER has only been tested using python 3, and is open-source with a MIT Licence.
 
+There is a live demo available here:
+
+http://ner.kbresearch.nl/
+
 ==
 
 Install notes:
