@@ -6,6 +6,8 @@ COPY requirements.txt /tmp
 
 RUN apt-get update && \
     apt-get install -y python3-numpy libicu-dev python3 python3-pip pkg-config default-jre unzip openjdk-8-jre-headless wget
+    
+RUN pip3 install Pillow==6.1
 
 RUN pip3 install -r /tmp/requirements.txt
 
