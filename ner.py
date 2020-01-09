@@ -567,7 +567,8 @@ def intergrate_results(result, source, source_text, context_len):
                                                        ne,
                                                        context_len)
             new_result[ne]["pos"] = ne
-            new_result[ne]["source"] = source
+            if source:
+                new_result[ne]["source"] = source
 
             final_result.append(new_result[ne])
 
@@ -680,10 +681,16 @@ def index():
                 ner_result = p.join()
                 result[list(ner_result)[0]] = ner_result[list(ner_result)[0]]
 
-            result_all[part] = intergrate_results(result,
-                                                  part,
-                                                  parsed_text[part],
-                                                  context_len)
+            if text:
+                result_all[part] = intergrate_results(result,
+                                                      False,
+                                                      parsed_text[part],
+                                                      context_len)
+            else:
+                result_all[part] = intergrate_results(result,
+                                                      part,
+                                                      parsed_text[part],
+                                                      context_len)
 
         for part in result_all:
             if result_all[part]:
