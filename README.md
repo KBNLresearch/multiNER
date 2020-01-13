@@ -1,4 +1,4 @@
-MultiNER combines the output from five different named-entity recognition (https://en.wikipedia.org/wiki/Named-entity_recognition) packages into one answer.
+MultiNER combines the output from five different (Dutch) named-entity recognition (https://en.wikipedia.org/wiki/Named-entity_recognition) packages into one answer.
 
 This software is part of the dac (https://github.com/KBNLresearch/dac) project,
 Entity linker for the Dutch historical newspaper collection of the National Library of the Netherlands.
