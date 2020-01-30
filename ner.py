@@ -17,14 +17,15 @@ To install most external dependencies using the following command:
 
 For Stanford and Spotlight, see their own manuals on howto install those:
 
-    https://nlp.stanford.edu/software/crf-faq.shtml#cc
+https://nlp.stanford.edu/software/crf-faq.shtml#cc
 
-    https://github.com/dbpedia-spotlight/dbpedia-spotlight/wiki/Run-from-a-JAR
-    https://github.com/dbpedia-spotlight/dbpedia-spotlight/
+https://github.com/dbpedia-spotlight/dbpedia-spotlight/wiki/Run-from-a-JAR
+https://github.com/dbpedia-spotlight/dbpedia-spotlight/
 
-    Spotlight needs older java version 8 to run.
+Spotlight needs older java version 8 to run.
 
-Once installed (With wanted language models), run the webservices so MultiNER can contact those:
+Once installed (With wanted language models),
+run the webservices so MultiNER can contact those:
 
     $ cd /path/to/stanford-ner-2018-10-16
     $ java -mx400m -cp stanford-ner.jar edu.stanford.nlp.ie.NERServer \
@@ -35,21 +36,22 @@ Once installed (With wanted language models), run the webservices so MultiNER ca
     $ java --add-modules java.xml.bind -jar dbpedia-spotlight-1.0.0.jar \
                          nl http://localhost:9090/rest
 
-    There is a small shell-script (run_external_ners.sh) available for this,
-    modify it to your needs, if you change port's or want to use an external server,
-    please keep them in sync with this file (STANFORD_HOST/PORT, SPOTLIGHT_HOST/PORT).
+There is a small shell-script (run_external_ners.sh) available for this,
+modify it to your needs, if you change ports or want to use an external server,
+please keep them in sync with this file:
+(STANFORD_HOST/PORT, SPOTLIGHT_HOST/PORT).
 
 Language models spacy, polyglot and flair:
 
-    There is a big try catch block surrounding the invocation of polyglot,
-    there is a good reason for that, I cannot seem to be able to force it to
-    use a specific language, it will do a lang-detect and handle on that info.
-    If the guessed language is not present, it will throw an exception.
+There is a big try catch block surrounding the invocation of polyglot,
+there is a good reason for that, I cannot seem to be able to force it to
+use a specific language, it will do a lang-detect and handle on that info.
+If the guessed language is not present, it will throw an exception.
 
-    You can soft-link mutiple languages to other languages, to fool the software
-    into using a wanted language, for example:
+You can soft-link mutiple languages to other languages, to fool the software
+into using a wanted language, for example:
 
-    $ cd ~/polyglot_data/ner2; mkdir af; ln -s ./nl/nl_ner.pkl.tar.bz2 ./af/af_ner.pkl.tar.bz2
+    $ mkdir af; ln -s ./nl/nl_ner.pkl.tar.bz2 ./af/af_ner.pkl.tar.bz2
 
     # apt-get install python-numpy libicu-dev
     $ pip install polyglot
@@ -61,37 +63,38 @@ Language models spacy, polyglot and flair:
     $ python -m spacy download nl
     $ python -m spacy download en
 
-    Flair will automaticaly download the language model on firstrun.
+Flair will automaticaly download the language model on firstrun.
 
 
 Running test, and stable web-service:
 
     $ python3 ./ner.py
 
-    This will run the doctest, if everything works, and external services are up,
-    0 errors should be the result.
+This will run the doctest, if everything works, and external services are up,
+0 errors should be the result.
 
     $ gunicorn -w 10 web:application -b :8099
 
-    Afther this the service can be envoked like this:
+Afther this the service can be envoked like this:
 
-    $ curl -s localhost:8099/?url=http://resolver.kb.nl/resolve?urn=ddd:010381561:mpeg21:a0049:ocr
+    $ curl -s localhost:8099/?text="This is a test by Willem Jan."
 
-    If you expect to process a lot:
+If you expect to process a lot:
 
     # echo 1 > /proc/sys/ipv4/tcp_tw_recycle
 
-    Else there will be no socket's left to process.
+Else there will be no socket's left to process.
 
 '''
 import ast
 import json
 import lxml.html
+import operator
 import requests
 import spacy
 import telnetlib
 import threading
-import operator
+import time
 
 from flask import request, Response, Flask
 from lxml import etree
@@ -196,6 +199,8 @@ class Stanford(threading.Thread):
         {'stanford': [{'ne': 'Albert Einstein', 'pos': 37, 'type': 'person'}]}
     '''
 
+    result = {}
+
     def __init__(self, group=None, target=None,
                  name=None, parsed_text={}):
 
@@ -203,7 +208,7 @@ class Stanford(threading.Thread):
         self.parsed_text = parsed_text
 
     def run(self):
-        self.result = {"stanford": []}
+        start_time = time.time()
 
         text = self.parsed_text.replace('\n', ' ')
 
@@ -251,7 +256,8 @@ class Stanford(threading.Thread):
             result[i]["pos"] = pos + offset
             offset += pos + len(ne)
 
-        self.result = {"stanford": result}
+        self.result = {"stanford": result,
+                       "timing_stanford": time.time() - start_time}
 
     def join(self):
         threading.Thread.join(self)
@@ -273,6 +279,8 @@ class Flair(threading.Thread):
         >>> pprint(f.join())
         {'flair': [{'ne': 'Albert Einstein.', 'pos': 37, 'type': 'person'}]}
     '''
+    result = {}
+
     def __init__(self, group=None, target=None,
                  name=None, parsed_text={}):
 
@@ -280,6 +288,7 @@ class Flair(threading.Thread):
         self.parsed_text = parsed_text
 
     def run(self):
+        start_time = time.time()
         sentence = [Sentence(self.parsed_text, use_tokenizer=False)]
         tagged = nlp_flair.predict(sentence)
 
@@ -287,21 +296,24 @@ class Flair(threading.Thread):
                 s.to_dict(tag_type='ner').get('entities') for s in tagged
                 ]
 
-        self.result = []
+        result = []
 
         for item in tagged_items:
             for i in item:
                 if not i:
                     continue
-                self.result.append({
+                result.append({
                     "ne": i.get('text'),
                     "pos": i.get('start_pos'),
                     "type": translate(i.get('type'))
                 })
 
+        self.result = {"flair": self.result,
+                       "timing_flair": time.time() - start_time}
+
     def join(self):
         threading.Thread.join(self)
-        return {"flair": self.result}
+        return self.result
 
 
 class Polyglot(threading.Thread):
@@ -327,6 +339,7 @@ class Polyglot(threading.Thread):
         self.parsed_text = parsed_text
 
     def run(self):
+        start_time = time.time()
         buffer_all = []
 
         try:
@@ -365,7 +378,8 @@ class Polyglot(threading.Thread):
         except Exception:
             result = []
 
-        self.result = {"polyglot": result}
+        self.result = {"polyglot": result,
+                       "timing_polyglot": time.time() - start_time}
 
     def join(self):
         threading.Thread.join(self)
@@ -395,6 +409,7 @@ class Spacy(threading.Thread):
         self.parsed_text = parsed_text
 
     def run(self):
+        start_time = time.time()
         result = []
         try:
             doc = nlp_spacy(self.parsed_text)
@@ -411,7 +426,8 @@ class Spacy(threading.Thread):
         except Exception:
             pass
 
-        self.result = {"spacy": result}
+        self.result = {"spacy": result,
+                       "timing_spacy": time.time() - start_time}
 
     def join(self):
         threading.Thread.join(self)
@@ -441,6 +457,8 @@ class Spotlight(threading.Thread):
         self.confidence = confidence
 
     def run(self):
+        start_time = time.time()
+
         data = {'text': self.parsed_text,
                 'confidence': str(self.confidence)}
 
@@ -473,7 +491,8 @@ class Spotlight(threading.Thread):
                         ne["type"] = "other"
                         result.append(ne)
 
-                self.result = {"spotlight": result}
+                self.result = {"spotlight": result,
+                               "timing_spotlight": time.time() - start_time}
                 done = True
             except Exception:
                 self.result = {"spotlight": []}
@@ -659,6 +678,8 @@ def index():
     if text:
         parsed_text = {'p': text}
 
+    timing = {}
+
     if parsed_text:
         result_all = {}
 
@@ -679,6 +700,16 @@ def index():
 
             for p in tasks:
                 ner_result = p.join()
+
+                # Add timing information per parser.
+                if not list(ner_result)[1] in timing:
+                    timing[list(ner_result)[1]] = \
+                        ner_result[list(ner_result)[1]]
+                else:
+                    timing[list(ner_result)[1]] += \
+                        ner_result[list(ner_result)[1]]
+
+                # Add entities per parser result.
                 result[list(ner_result)[0]] = ner_result[list(ner_result)[0]]
 
             if text:
@@ -697,14 +728,14 @@ def index():
                 for item in result_all[part]:
                     fresult.append(item)
 
-
-
         if text:
             result = json.dumps({"entities": fresult,
-                                 "text": text})
+                                 "text": text,
+                                 "timing": timing})
         else:
             result = json.dumps({"entities": fresult,
-                                 "text": parsed_text})
+                                 "text": parsed_text,
+                                 "timing": timing})
 
         resp = Response(response=result,
                         mimetype='application/json; charset=utf-8')
