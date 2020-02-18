@@ -234,7 +234,9 @@ class Stanford(threading.Thread):
         raw_data = conn.read_all().decode('utf-8')
         conn.close()
 
-        data = etree.fromstring('<root>' + raw_data + '</root>')
+        data = etree.fromstring('<root>' + \
+                                raw_data.replace('<', '|') + \
+                                '</root>')
 
         result = []
 
@@ -610,16 +612,19 @@ def manual_find(input_str, source_text, source, context_len):
     result["source"] = source
     result["type"] = 'manual'
 
-    if not pos == -1:
-        result["left_context"],
-        result["right_context"],
-        result["ne_context"] = context(source_text,
-                                       input_str,
-                                       pos,
-                                       context_len)
-    else:
-        result["left_context"] = result["right_context"] = ''
-        result["ne_context"] = input_str
+    try:
+        if not pos == -1:
+            result["left_context"],
+            result["right_context"],
+            result["ne_context"] = context(source_text,
+                                           input_str,
+                                           pos,
+                                           context_len)
+        else:
+            result["left_context"] = result["right_context"] = ''
+            result["ne_context"] = input_str
+    except:
+        pass
 
     return result
 
@@ -702,12 +707,15 @@ def index():
                 ner_result = p.join()
 
                 # Add timing information per parser.
-                if not list(ner_result)[1] in timing:
-                    timing[list(ner_result)[1]] = \
-                        ner_result[list(ner_result)[1]]
-                else:
-                    timing[list(ner_result)[1]] += \
-                        ner_result[list(ner_result)[1]]
+                try:
+                    if not list(ner_result)[1] in timing:
+                        timing[list(ner_result)[1]] = \
+                            ner_result[list(ner_result)[1]]
+                    else:
+                        timing[list(ner_result)[1]] += \
+                            ner_result[list(ner_result)[1]]
+                except:
+                    pass
 
                 # Add entities per parser result.
                 result[list(ner_result)[0]] = ner_result[list(ner_result)[0]]
