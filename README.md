@@ -11,6 +11,7 @@ The following packages are used:
     - polyglot (http://polyglot.readthedocs.io/)
     - DBpedia Spotlight (https://www.dbpedia-spotlight.org/)
     - Flair (https://github.com/zalandoresearch/flair)
+    - BERT (https://github.com/google-research/bert)
 
 In our setup Stanford and Spotlight are the leading NER package's (So all these show up in the integrated results), only if 2 other NER packages agree on a NE, the answer show's up in the integrated results. If just Spotlight or Stanford see an NE, and none agree, it will still show up in the end result.
 
