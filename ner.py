@@ -100,15 +100,15 @@ from flask import request, Response, Flask
 from lxml import etree
 from polyglot.text import Text
 
-from flair.models import SequenceTagger
-from flair.data import Sentence
+#from flair.models import SequenceTagger
+#from flair.data import Sentence
 
 application = Flask(__name__)
 application.debug = True
 
 # Preload Dutch data.
-nlp_spacy = spacy.load('nl')
-nlp_flair = SequenceTagger.load('ner-multi')
+# nlp_spacy = spacy.load('nl')
+# nlp_flair = SequenceTagger.load('ner-multi')
 
 # Will be used in web-service and doctest.
 EXAMPLE_URL = "http://resolver.kb.nl/resolve?"
@@ -117,6 +117,7 @@ EXAMPLE_URL += "urn=ddd:010381561:mpeg21:a0049:ocr"
 # Baseurl for gado2 (BERT-NER).
 BERT_HOST = "145.38.197.109"
 BERT_PORT = 8000
+BERT_PATH = "predict/?text="
 
 # Baseurl for Stanford standalone NER setup.
 # https://nlp.stanford.edu/software/crf-faq.shtml#cc
@@ -215,15 +216,16 @@ class BERT(threading.Thread):
         start_time = time.time()
 
         text = self.parsed_text.replace('\n', ' ')
-        result = requests.get('http://%s:%s/predict?text="%s"' % BERT_HOST, BERT_PORT, text)
+
+        url = "http://%s:%s/%s" % (BERT_HOST, BERT_PORT, BERT_PATH)
+        result = requests.get('%s"%s"' % (url, text))
+
         self.result = {"bert": result.json(),
                        "timing_bert": time.time() - start_time}
 
     def join(self):
         threading.Thread.join(self)
         return self.result
-
-
 
 
 class Stanford(threading.Thread):
@@ -308,9 +310,8 @@ class Stanford(threading.Thread):
         threading.Thread.join(self)
         return self.result
 
-
+'''
 class Flair(threading.Thread):
-    '''
         Wrapper for Flair.
 
         https://github.com/zalandoresearch/flair
@@ -323,7 +324,6 @@ class Flair(threading.Thread):
         >>> from pprint import pprint
         >>> pprint(f.join())
         {'flair': [{'ne': 'Albert Einstein.', 'pos': 37, 'type': 'person'}]}
-    '''
     result = {}
 
     def __init__(self, group=None, target=None,
@@ -359,6 +359,7 @@ class Flair(threading.Thread):
     def join(self):
         threading.Thread.join(self)
         return self.result
+'''
 
 
 class Polyglot(threading.Thread):
@@ -691,7 +692,7 @@ def max_class(input_type={"LOC": 2, "MISC": 3}, pref_type="LOC"):
 @application.route('/')
 def index():
     parsers = {"bert": BERT,
-               "flair": Flair,
+               #"flair": Flair,
                "polyglot": Polyglot,
                "spacy": Spacy,
                "spotlight": Spotlight,
@@ -862,7 +863,6 @@ def test_all():
     ...            "bert": BERT,
     ...            "polyglot": Polyglot,
     ...            "stanford": Stanford,
-    ...            "flair" : Flair,
     ...            "spacy": Spacy,
     ...            "spotlight": Spotlight,
     ...           }
