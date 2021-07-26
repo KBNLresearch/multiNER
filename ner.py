@@ -114,6 +114,10 @@ nlp_flair = SequenceTagger.load('ner-multi')
 EXAMPLE_URL = "http://resolver.kb.nl/resolve?"
 EXAMPLE_URL += "urn=ddd:010381561:mpeg21:a0049:ocr"
 
+# Baseurl for gado2 (BERT-NER).
+BERT_HOST = "145.38.197.109"
+BERT_PORT = 8000
+
 # Baseurl for Stanford standalone NER setup.
 # https://nlp.stanford.edu/software/crf-faq.shtml#cc
 # (Use inlineXML)
@@ -181,6 +185,45 @@ def translate(input_str):
     if input_str == "loc":
         return 'location'
     return input_str
+
+
+class BERT(threading.Thread):
+    '''
+        Wrapper for BERT-NER-gado2.
+
+        https://github.com/KBNLresearch/gado2
+
+        >>> test = "Deze iets langere test bevat de naam Albert Einstein."
+        >>> p = BERT(parsed_text=test)
+        >>> p.start()
+        >>> import time
+        >>> time.sleep(0.1)
+        >>> from pprint import pprint
+        >>> pprint(p.join())
+        {'bert': [{'ne': 'Albert Einstein', 'pos': 37, 'type': 'person'}]}
+    '''
+
+    result = {}
+
+    def __init__(self, group=None, target=None,
+                 name=None, parsed_text={}):
+
+        threading.Thread.__init__(self, group=group, target=target, name=name)
+        self.parsed_text = parsed_text
+
+    def run(self):
+        start_time = time.time()
+
+        text = self.parsed_text.replace('\n', ' ')
+        result = requests.get('http://%s:%s/predict?text="%s"' % BERT_HOST, BERT_PORT, text)
+        self.result = {"bert": result.json(),
+                       "timing_bert": time.time() - start_time}
+
+    def join(self):
+        threading.Thread.join(self)
+        return self.result
+
+
 
 
 class Stanford(threading.Thread):
@@ -647,7 +690,8 @@ def max_class(input_type={"LOC": 2, "MISC": 3}, pref_type="LOC"):
 
 @application.route('/')
 def index():
-    parsers = {"flair": Flair,
+    parsers = {"bert": BERT,
+               "flair": Flair,
                "polyglot": Polyglot,
                "spacy": Spacy,
                "spotlight": Spotlight,
@@ -815,6 +859,7 @@ def test_all():
     Example usage:
 
     >>> parsers = {
+    ...            "bert": BERT,
     ...            "polyglot": Polyglot,
     ...            "stanford": Stanford,
     ...            "flair" : Flair,
