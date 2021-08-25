@@ -781,7 +781,8 @@ def ocr_to_dict(url):
 
     parser = lxml.etree.XMLParser(ns_clean=False,
                                   recover=True,
-                                  encoding='utf-8')
+                                  encoding='utf-8',
+                                  resolve_entities=False)
 
     xml = lxml.etree.fromstring(text.encode(), parser=parser)
 
